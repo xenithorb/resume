@@ -6,3 +6,6 @@
 *.out
 *.gz
 *.tar*
+.cache
+.texlive*
+.bash_history

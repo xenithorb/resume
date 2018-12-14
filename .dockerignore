@@ -1,0 +1,4 @@
+.cache
+.texlive*
+resume.*
+!resume.tex
