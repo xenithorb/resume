@@ -1,0 +1,8 @@
+*.pdf
+*.png
+*.html
+*.log
+*.aux
+*.out
+*.gz
+*.tar*
