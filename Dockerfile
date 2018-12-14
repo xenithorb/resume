@@ -10,12 +10,12 @@ RUN rm -rf /var/cache/dnf /var/cache/yum \
     && rm -rf /var/cache/dnf /var/cache/yum \
     && dnf clean all
 
-ENV WORKDIR /src
+RUN useradd -m -u 1000 -d /src builder
+WORKDIR /src 
 
-RUN mkdir -p ${WORKDIR}
+COPY . .
+RUN chown -R builder. /src
 
-COPY . ${WORKDIR}/
-
-WORKDIR ${WORKDIR}
+USER builder
 
 CMD ["make"]
