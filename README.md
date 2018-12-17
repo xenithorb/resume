@@ -3,9 +3,21 @@ To generate a PDF from this LaTeX code, navigate to this folder in a terminal an
 
     docker build -t resume . && docker run -it -v "$PWD:/src:Z" resume
 
-Alternatively, which runs the same command above
+Alternatively, which runs the same command above and more:
 
-    make docker 
+    $ make update
+    - Building resume docker container image...
+    Done.
+    - Running LaTeX docker container to convert to PDF...
+    - Converting resume.tex to resume.pdf
+    - Converting resume.pdf to resume.png
+    Done.
+    - Adding resume.pdf resume-*.png to the git index
+    - Committing files to the git repository
+    [master 36f6502] Update current version PNG images and PDF
+     2 files changed, 0 insertions(+), 0 deletions(-)
+     rewrite resume-1.png (89%)
+     rewrite resume.pdf (76%)
 
 ## Usage (Classic on Fedora)
 To generate a PDF from this LaTeX code, navigate to this folder in a terminal and run:
@@ -15,8 +27,8 @@ To generate a PDF from this LaTeX code, navigate to this folder in a terminal an
 
 Or 
 
-    make pdf
-    make png
+    make resume.pdf
+    make resume.png
 
 ## Requirements (without docker)
 You will need to have `xelatex` installed on your machine. On Fedora:
