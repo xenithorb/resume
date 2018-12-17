@@ -7,8 +7,8 @@ pdf:
 png: pdf
 	pdftocairo -png resume.pdf
 
-update: png
-	git add resume*.png && git commit -m "Update current version PNG images"
+update: docker
+	git add resume*.png resume.pdf && git commit -m "Update current version PNG images and PDF"
 
 docker:
 	docker build -t resume . && docker run -v "$$PWD:/src:Z" resume
