@@ -89,7 +89,7 @@ deploy:
   before_script:
     - command -v ssh-agent >/dev/null 2>&1 || ( dnf install -y /usr/bin/ssh-agent )
     - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - echo "$GIT_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
   script:
