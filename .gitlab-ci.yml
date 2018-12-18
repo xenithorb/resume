@@ -51,6 +51,7 @@ convert_tex_pdf:
     
   script:
     - make
+    - make git_commit_updates
     - "git commit -m \"Gitlab-CI: Auto update projects files and release artifacts\""
     - git push -u origin $CI_COMMIT_REF_NAME
 
