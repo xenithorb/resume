@@ -2,8 +2,8 @@
 image: fedora:latest
 stages:
   - build_docker
-  - convert_tex_pdf
-  - convert_pdf_png
+  - build
+  - deploy
 
 variables:
   DOCKER_DRIVER: overlay2
@@ -33,6 +33,7 @@ build_docker:
 #      Build Fedora texlive image 
 ####################################
 convert_tex_pdf:
+  stage: build
   image: 
     name: $IMAGE_TAG
     entrypoint: []
@@ -45,9 +46,9 @@ convert_tex_pdf:
     
   script:
     - make
-    - git commit -m 'Gitlab-CI: Auto update projects files and release artifacts'
+    - "git commit -m \"Gitlab-CI: Auto update projects files and release artifacts\""
+    - git push -u gitlab master
 
   # only: 
   #   - master
 ####################################
-
