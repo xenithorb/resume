@@ -13,7 +13,7 @@ variables:
 #      Build Fedora texlive image 
 ####################################
 build_docker:
-  image: docker:stable-dind
+  image: docker:stable
   stage: build_docker
   services:
     - docker:stable-dind
