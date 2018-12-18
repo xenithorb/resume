@@ -45,9 +45,14 @@ convert_tex_pdf:
     entrypoint: []
   services: []
 
+  variables:
+    GIT_STRAGEGY: fetch
+    GIT_CHECKOUT: "true"
+
   before_script:
     - git config user.name "Gitlab-CI"
     - git config user.email "git@gitlab.com"
+    - make clean # Necessary to remove files make won't build if exists
     
   script:
     - make
