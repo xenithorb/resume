@@ -47,8 +47,7 @@ build_docker:
 
   after_script:
     - cat build.log
-  except:
-    - 
+
 ####################################
 #   Build PDF
 ####################################
