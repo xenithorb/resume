@@ -2,13 +2,14 @@
 image: fedora:latest
 stages:
   - build_docker
-  - build
+  - build_pdf
+  - build_png 
   - deploy
 
 variables:
   DOCKER_DRIVER: overlay2
   IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
-
+  
 ####################################
 #      Build Fedora texlive image 
 ####################################
@@ -38,8 +39,7 @@ build_docker:
 ####################################
 #      Build Fedora texlive image 
 ####################################
-convert_tex_pdf:
-  stage: build
+.build_artifacts: &build_artifacts
   image: 
     name: $IMAGE_TAG
     entrypoint: []
@@ -52,13 +52,6 @@ convert_tex_pdf:
   before_script:
     - git config user.name "Gitlab-CI"
     - git config user.email "git@gitlab.com"
-    - make clean # Necessary to remove files make won't build if exists
-    
-  script:
-    - make
-    - make git_commit_updates
-    - "git commit -m \"Gitlab-CI: Auto update projects files and release artifacts\""
-    - git push -u origin $CI_COMMIT_REF_NAME
 
   after_script:
     - cat build.log
@@ -66,3 +59,25 @@ convert_tex_pdf:
   # only: 
   #   - master
 ####################################
+
+build_pdf:
+  <<: *build_artifacts
+  stage: build_pdf
+  script:
+    - rm -f *.pdf
+    - make resume.pdf
+  artifacts:
+    paths:
+      - '*.pdf'
+
+build_png:
+  <<: *build_artifacts
+  stage: build_png
+  script:
+    - rm *.png
+    - make resume.png 
+  dependencies: 
+    - build_pdf
+  artifacts:
+    paths:
+      - '*.png'
