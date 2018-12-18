@@ -84,14 +84,16 @@ build_png:
 #   Deploy
 ####################################
 deploy:
-  <<: *build_artifacts
   stage: deploy
   before_script:
-    - command -v ssh-agent >/dev/null 2>&1 || ( dnf install -y /usr/bin/ssh-agent )
+    - which ssh-agent || ( dnf install -y /usr/bin/ssh-agent )
+    - which ssh-keyscan || ( dnf install -y /usr/bin/ssh-keyscan )
+    - which git || ( dnf install -y /usr/bin/git )
     - eval $(ssh-agent -s)
     - echo "$GIT_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
   script:
     - git remote set-url origin "git@gitlab.com:${CI_PROJECT_PATH}"
     - git remote -v
