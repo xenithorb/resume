@@ -20,12 +20,11 @@ build_docker:
     - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
   script:
-    - apt-get -yqq update
-    - apt-get -yqq install make
+    - apk --no-cache add make
     - make docker_build
     - docker push $IMAGE_TAG
 
-  when: manual
+  # when: manual
   except:
     - pipelines
 #####################################
