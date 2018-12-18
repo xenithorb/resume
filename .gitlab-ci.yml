@@ -9,6 +9,8 @@ stages:
 variables:
   DOCKER_DRIVER: overlay2
   IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+  GIT_HOST: github.com
+  #GIT_HOST: gitlab.com
   
 ####################################
 #   Build Fedora texlive image 
@@ -82,14 +84,18 @@ build_png:
 #   Deploy
 ####################################
 deploy:
-  variables:
-    GIT_HOST: github.com
-    #GIT_HOST: gitlab.com
   stage: deploy
   before_script:
+    - export RELEASE_TAG=$(date +'%F-%H-%M')
+    - "\
+      export API_JSON=$(printf \
+      '{ \"tag_name\": \"%s\", \
+      \"body\": \"%s\", \"draft\": false, \"prerelease\": false }' \
+      \"${RELEASE_TAG}\" \"Latest Release of my Resume as of: ${RELEASE_TAG}\")"
     - command -v ssh-agent || INSTALL_PKGS+=" /usr/bin/ssh-agent"
     - command -v ssh-keyscan || INSTALL_PKGS+=" /usr/bin/ssh-keyscan"
     - command -v git || INSTALL_PKGS+=" /usr/bin/git"
+    - command -v curl || INSTALL_PKGS+=" /usr/bin/curl"
     - dnf install -y ${INSTALL_PKGS}
     - eval $(ssh-agent -s)
     - echo "$GIT_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
@@ -106,8 +112,15 @@ deploy:
     - git add resume.pdf resume-*.png
     - 'git commit -m "[skip ci] Auto Update PNG/PDF files in repository"'
     - git push -u origin $CI_COMMIT_REF_NAME
-    - git tag $(date +'%F-%H-%M')
+    - git tag ${RELEASE_TAG}
     - git push --tags
+    - curl --data "${API_JSON}" https://api.github.com/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}
+    - "\
+      for i in resume.pdf resume*.png; do\ 
+      curl --user \"xenithorb:${GITHUB_TOKEN}\"\
+      -X POST \"https://uploads.github.com/repos/${CI_PROJECT_PATH}/releases/${RELEASE_TAG}/assets?name=${i}\"\
+      --upload-file \"${i}\"\
+      ; done"
   dependencies:
     - build_pdf
     - build_png
