@@ -1,0 +1,53 @@
+---
+image: fedora:latest
+stages:
+  - build_docker
+  - convert_tex_pdf
+  - convert_pdf_png
+
+variables:
+  DOCKER_DRIVER: overlay2
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+
+####################################
+#      Build Fedora texlive image 
+####################################
+build_docker:
+  image: docker:stable-dind
+  stage: build_docker
+
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+
+  script: 
+    - make docker_build
+    - docker push $IMAGE_TAG
+
+  when: manual
+  except:
+    - pipelines
+#####################################
+
+
+####################################
+#      Build Fedora texlive image 
+####################################
+convert_tex_pdf:
+  image: 
+    name: $IMAGE_TAG
+    entrypoint: []
+  services: []
+
+  before_script:
+    - git remote set-url gitlab "https://gitlab-ci-token@${CI_JOB_TOKEN}@${CI_REPOSITORY_URL}"
+    - git remote -v 
+    - git config -l
+    
+  script:
+    - make
+    - git commit -m 'Gitlab-CI: Auto update projects files and release artifacts'
+
+  # only: 
+  #   - master
+####################################
+
