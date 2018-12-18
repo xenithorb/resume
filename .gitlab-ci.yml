@@ -12,7 +12,7 @@ variables:
   GIT_HOST: github.com
   #GIT_HOST: gitlab.com
   
-####################################
+#####################################
 #   Build Fedora texlive image 
 ####################################
 build_docker:
