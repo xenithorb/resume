@@ -86,9 +86,10 @@ build_png:
 deploy:
   stage: deploy
   before_script:
-    - which ssh-agent || ( dnf install -y /usr/bin/ssh-agent )
-    - which ssh-keyscan || ( dnf install -y /usr/bin/ssh-keyscan )
-    - which git || ( dnf install -y /usr/bin/git )
+    - command -v ssh-agent || INSTALL_PKGS+=" /usr/bin/ssh-agent"
+    - command -v ssh-keyscan || INSTALL_PKGS+=" /usr/bin/ssh-keyscan"
+    - command -v git || INSTALL_PKGS+=" /usr/bin/git"
+    - dnf install -y ${INSTALL_PKGS}
     - eval $(ssh-agent -s)
     - echo "$GIT_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh
