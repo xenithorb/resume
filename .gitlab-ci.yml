@@ -50,6 +50,9 @@ convert_tex_pdf:
     - "git commit -m \"Gitlab-CI: Auto update projects files and release artifacts\""
     - git push -u gitlab master
 
+  after_script:
+    - cat build.log
+
   # only: 
   #   - master
 ####################################
