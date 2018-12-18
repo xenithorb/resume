@@ -24,6 +24,9 @@ build_docker:
     - make docker_build
     - docker push $IMAGE_TAG
 
+  after_script:
+    - cat build.log
+    
   # when: manual
   except:
     - pipelines
