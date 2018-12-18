@@ -15,7 +15,8 @@ variables:
 build_docker:
   image: docker:stable-dind
   stage: build_docker
-
+  services:
+    - docker:stable-dind
   before_script:
     - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
@@ -26,7 +27,7 @@ build_docker:
 
   after_script:
     - cat build.log
-    
+
   # when: manual
   except:
     - pipelines
