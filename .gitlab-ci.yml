@@ -11,7 +11,7 @@ variables:
   IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   
 ####################################
-#      Build Fedora texlive image 
+#   Build Fedora texlive image 
 ####################################
 build_docker:
   image: docker:stable
@@ -33,11 +33,9 @@ build_docker:
   when: manual
   except:
     - pipelines
-#####################################
-
 
 ####################################
-#      Build Fedora texlive image 
+#   Build template 
 ####################################
 .build_artifacts: &build_artifacts
   image: 
@@ -58,8 +56,10 @@ build_docker:
 
   # only: 
   #   - master
-####################################
 
+####################################
+#   Build PDF
+####################################
 build_pdf:
   <<: *build_artifacts
   stage: build_pdf
@@ -70,6 +70,9 @@ build_pdf:
     paths:
       - '*.pdf'
 
+####################################
+#   Build PNG 
+####################################
 build_png:
   <<: *build_artifacts
   stage: build_png
@@ -81,3 +84,19 @@ build_png:
   artifacts:
     paths:
       - '*.png'
+
+####################################
+#   Deploy
+####################################
+deploy:
+  <<: *build_artifacts
+  stage: deploy
+  script:
+    - echo Test
+  dependencies:
+    - build_pdf
+    - build_png
+  artifacts:
+    paths:
+      - '*.png'
+      - '*.pdf'
