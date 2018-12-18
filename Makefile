@@ -13,7 +13,7 @@ all: $(PDF) $(PNG)
 
 .pdf.png:
 	@echo "- Converting $< to $@"
-	pdftocairo -png $< >>$(LOG) 2>&1
+	@pdftocairo -png $< >>$(LOG) 2>&1
 
 update: docker_xelatex git_commit_updates
 
