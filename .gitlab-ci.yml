@@ -17,9 +17,11 @@ build_docker:
   stage: build_docker
 
   before_script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
-  script: 
+  script:
+    - apt-get -yqq update
+    - apt-get -yqq install make
     - make docker_build
     - docker push $IMAGE_TAG
 
