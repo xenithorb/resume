@@ -19,10 +19,11 @@ build_docker:
     - docker:stable-dind
   before_script:
     - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - apk --no-cache add make
 
   script:
-    - apk --no-cache add make
     - make docker_build
+    - docker tag resume $IMAGE_TAG
     - docker push $IMAGE_TAG
 
   after_script:
