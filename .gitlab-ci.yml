@@ -116,11 +116,17 @@ deploy:
     - git push --tags
     - curl --data "${API_JSON}" https://api.github.com/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}
     - "\
-      for i in resume.pdf resume*.png; do\ 
-      curl --user \"xenithorb:${GITHUB_TOKEN}\"\
+      for i in resume*.png; do\ 
+      curl --user \"xenithorb:${GITHUB_TOKEN}\"\ --header 'Content-Type: image/png'
       -X POST \"https://uploads.github.com/repos/${CI_PROJECT_PATH}/releases/${RELEASE_TAG}/assets?name=${i}\"\
-      --upload-file \"${i}\"\
-      ; done"
+      --upload-file \"${i}\";\
+      done"
+    - "\
+      for i in resume.pdf; do\ 
+      curl --user \"xenithorb:${GITHUB_TOKEN}\"\ --header 'Content-Type: application/pdf'
+      -X POST \"https://uploads.github.com/repos/${CI_PROJECT_PATH}/releases/${RELEASE_TAG}/assets?name=${i}\"\
+      --upload-file \"${i}\";\
+      done"
   dependencies:
     - build_pdf
     - build_png
