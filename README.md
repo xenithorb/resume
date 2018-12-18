@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.com/xenithorb/resume/badges/master/pipeline.svg)](https://gitlab.com/xenithorb/resume/commits/master)
+
 ## Usage (Docker style)
 To generate a PDF from this LaTeX code, navigate to this folder in a terminal and run:
 

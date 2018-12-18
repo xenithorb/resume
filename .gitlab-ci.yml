@@ -47,15 +47,8 @@ build_docker:
     GIT_STRAGEGY: fetch
     GIT_CHECKOUT: "true"
 
-  before_script:
-    - git config user.name "Gitlab-CI"
-    - git config user.email "git@gitlab.com"
-
   after_script:
     - cat build.log
-
-  # only: 
-  #   - master
 
 ####################################
 #   Build PDF
@@ -93,13 +86,22 @@ build_png:
 deploy:
   <<: *build_artifacts
   stage: deploy
+  before_script:
+    - command -v ssh-agent >/dev/null 2>&1 || ( dnf install -y /usr/bin/ssh-agent )
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
   script:
+    - git remote set-url origin "git@gitlab.com:${CI_PROJECT_PATH}"
+    - git remote -v
+    - ssh-add -l
     - git config user.name "Gitlab-CI"
     - git config user.email "git@gitlab.com"
-    - git checkout master
+    - git checkout $CI_COMMIT_REF_NAME
     - git add resume.pdf resume-*.png
     - 'git commit -m "Gitlab-CI: Update PNG/PDF files in repository"'
-    - git push -u origin master
+    - git push -u origin $CI_COMMIT_REF_NAME
     - git tag $(date +'%F-%H-%M')
     - git push --tags
   dependencies:
