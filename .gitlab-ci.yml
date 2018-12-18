@@ -31,8 +31,6 @@ build_docker:
     - cat build.log
 
   when: manual
-  except:
-    - pipelines
 
 ####################################
 #   Build template 
@@ -49,7 +47,8 @@ build_docker:
 
   after_script:
     - cat build.log
-
+  except:
+    - 
 ####################################
 #   Build PDF
 ####################################
@@ -103,7 +102,7 @@ deploy:
     - git config user.email "git@gitlab.com"
     - git checkout $CI_COMMIT_REF_NAME
     - git add resume.pdf resume-*.png
-    - 'git commit -m "Gitlab-CI: Update PNG/PDF files in repository"'
+    - 'git commit -m "[skip ci] Auto Update PNG/PDF files in repository"'
     - git push -u origin $CI_COMMIT_REF_NAME
     - git tag $(date +'%F-%H-%M')
     - git push --tags
