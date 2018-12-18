@@ -46,14 +46,13 @@ convert_tex_pdf:
   services: []
 
   before_script:
-    - git remote add gitlab "https://gitlab-ci-token@${CI_JOB_TOKEN}@${CI_REPOSITORY_URL}"
-    - git remote -v 
-    - git config -l
+    - git config user.name "Gitlab-CI"
+    - git config user.email "git@gitlab.com"
     
   script:
     - make
     - "git commit -m \"Gitlab-CI: Auto update projects files and release artifacts\""
-    - git push -u gitlab $CI_COMMIT_REF_NAME
+    - git push -u origin $CI_COMMIT_REF_NAME
 
   after_script:
     - cat build.log
