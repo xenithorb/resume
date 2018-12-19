@@ -12,10 +12,19 @@ variables:
   GIT_HOST: github.com
   #GIT_HOST: gitlab.com
 
+# YAML anchor for all jobs build exceptions. This keeps the CI 
+# from looping on itself, since we have it commit back to the repo 
+# to update the PNG/PDF files
+.build_exceptions: &build_exceptions
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /\[CI\]/
+
 #####################################
 #   Build Fedora texlive image
 ####################################
 build_docker: &build_docker
+  <<: *build_exceptions
   image: docker:stable
   stage: build_docker
   services:
@@ -33,10 +42,12 @@ build_docker: &build_docker
 
   when: manual
 
+
 ####################################
 #   Build template
 ####################################
 .build_artifacts: &build_artifacts
+  <<: *build_exceptions
   image:
     name: $IMAGE_TAG
     entrypoint: []
@@ -83,6 +94,7 @@ build_png:
 #   Deploy
 ####################################
 deploy:
+  <<: *build_exceptions
   stage: deploy
   variables:
     DEPENDENCIES: >-
@@ -119,7 +131,7 @@ deploy:
     - git config user.email "git@gitlab.com"
     - git checkout ${CI_COMMIT_REF_NAME}
     - git add resume.pdf resume-*.png
-    - git commit -m "[skip ci] Auto Update PNG/PDF files in repository"
+    - "git commit -m \"[CI]: Update PNG/PDF files in repository\""
     - git push -u origin ${CI_COMMIT_REF_NAME}
     - git tag ${RELEASE_TAG}
     - git push --tags
