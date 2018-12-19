@@ -94,6 +94,7 @@ deploy:
       file
       jq
   before_script:
+    - set -x
     - echo "${DEPENDENCIES}"
     - RELEASE_TAG=$(date +'%F-%H-%M')
     - |-
@@ -101,7 +102,7 @@ deploy:
         printf '{ "tag_name": "%s", "body": "%s", "draft": false, "prerelease": false }' \
         "${RELEASE_TAG}" "Latest Release of my Resume as of: ${RELEASE_TAG}"
       )
-    - set -x; for i in "${DEPENDENCIES}"; do command -v "${i}" || INSTALL_PKGS+=" /usr/bin/${i}"; done; set +x
+    - for i in ${DEPENDENCIES}; do command -v "${i}" || INSTALL_PKGS+=" /usr/bin/${i}"; done
     - rm -f /etc/*.repos.d/*-modular.repo
     - dnf install -y ${INSTALL_PKGS}
     - eval $(ssh-agent -s)
