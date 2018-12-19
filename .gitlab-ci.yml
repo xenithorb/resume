@@ -41,7 +41,8 @@ build_docker: &build_docker
   #   - cat build.log
 
   when: manual
-
+  only:
+    - web
 
 ####################################
 #   Build template
