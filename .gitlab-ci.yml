@@ -3,7 +3,7 @@ image: fedora:latest
 stages:
   - build_docker
   - build_pdf
-  - build_png 
+  - build_png
   - deploy
 
 variables:
@@ -11,11 +11,11 @@ variables:
   IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   GIT_HOST: github.com
   #GIT_HOST: gitlab.com
-  
+
 #####################################
-#   Build Fedora texlive image 
+#   Build Fedora texlive image
 ####################################
-build_docker:
+build_docker: &build_docker
   image: docker:stable
   stage: build_docker
   services:
@@ -26,8 +26,8 @@ build_docker:
 
   script:
     - make docker_build
-    - docker tag resume $IMAGE_TAG
-    - docker push $IMAGE_TAG
+    - docker tag resume "${CI_REGISTRY_NAME}:fedora-texlive"
+    - docker push "${CI_REGISTRY_NAME}:fedora-texlive"
 
   after_script:
     - cat build.log
@@ -35,10 +35,10 @@ build_docker:
   when: manual
 
 ####################################
-#   Build template 
+#   Build template
 ####################################
 .build_artifacts: &build_artifacts
-  image: 
+  image:
     name: $IMAGE_TAG
     entrypoint: []
   services: []
@@ -65,15 +65,15 @@ build_pdf:
       - '*.pdf'
 
 ####################################
-#   Build PNG 
+#   Build PNG
 ####################################
 build_png:
   <<: *build_artifacts
   stage: build_png
   script:
     - rm *.png
-    - make resume.png 
-  dependencies: 
+    - make resume.png
+  dependencies:
     - build_pdf
   artifacts:
     expire_in: '300'
@@ -86,16 +86,19 @@ build_png:
 deploy:
   stage: deploy
   before_script:
-    - export RELEASE_TAG=$(date +'%F-%H-%M')
-    - "\
-      export API_JSON=$(printf \
-      '{ \"tag_name\": \"%s\", \
-      \"body\": \"%s\", \"draft\": false, \"prerelease\": false }' \
-      \"${RELEASE_TAG}\" \"Latest Release of my Resume as of: ${RELEASE_TAG}\")"
+    - RELEASE_TAG=$(date +'%F-%H-%M')
+    - |-
+      API_JSON=$(
+        printf '{ "tag_name": "%s", "body": "%s", "draft": false, "prerelease": false }' \
+        "${RELEASE_TAG}" "Latest Release of my Resume as of: ${RELEASE_TAG}"
+      )
     - command -v ssh-agent || INSTALL_PKGS+=" /usr/bin/ssh-agent"
     - command -v ssh-keyscan || INSTALL_PKGS+=" /usr/bin/ssh-keyscan"
     - command -v git || INSTALL_PKGS+=" /usr/bin/git"
     - command -v curl || INSTALL_PKGS+=" /usr/bin/curl"
+    - command -v file || INSTALL_PKGS+=" /usr/bin/file"
+    - command -v jq || INSTALL_PKGS+=" /usr/bin/jq"
+    - rm -f /etc/*.repos.d/*-modular.repo
     - dnf install -y ${INSTALL_PKGS}
     - eval $(ssh-agent -s)
     - echo "$GIT_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
@@ -110,23 +113,20 @@ deploy:
     - git config user.email "git@gitlab.com"
     - git checkout $CI_COMMIT_REF_NAME
     - git add resume.pdf resume-*.png
-    - 'git commit -m "[skip ci] Auto Update PNG/PDF files in repository"'
+    - git commit -m "[skip ci] Auto Update PNG/PDF files in repository"
     - git push -u origin $CI_COMMIT_REF_NAME
     - git tag ${RELEASE_TAG}
     - git push --tags
-    - curl --data "${API_JSON}" https://api.github.com/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}
-    - "\
-      for i in resume*.png; do \
-      curl --user \"xenithorb:${GITHUB_TOKEN}\"\ --header 'Content-Type: image/png' \
-      --upload-file \"${i}\" \
-      -X POST \"https://uploads.github.com/repos/${CI_PROJECT_PATH}/releases/${RELEASE_TAG}/assets?name=${i}\" \
-      ; done"
-    - "\
-      for i in resume.pdf; do \
-      curl --user \"xenithorb:${GITHUB_TOKEN}\"\ --header 'Content-Type: application/pdf' \
-      --upload-file \"${i}\" \
-      -X POST \"https://uploads.github.com/repos/${CI_PROJECT_PATH}/releases/${RELEASE_TAG}/assets?name=${i}\" \
-      ; done"
+    - API_RESPONSE=$(curl -S --data "${API_JSON}" "https://api.github.com/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}")
+    - API_ASSET_URL=$( echo "$API_RESPONSE" | jq '.upload_url|split("{")[0]' )
+    - |-
+      for i in resume.pdf resume*.png; do
+        curl -S \
+          --user "${CI_PROJECT_NAMESPACE}:${GITHUB_TOKEN}" \
+          --header "Content-Type: $( file -b --mime-type ${i} )" \
+          --upload-file "${i}" \
+          -X POST "${API_ASSET_URL}?name=${i}"
+      done
   dependencies:
     - build_pdf
     - build_png
