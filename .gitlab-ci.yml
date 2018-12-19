@@ -149,3 +149,4 @@ deploy:
       - '*.pdf'
   only:
     - master
+    - tags
