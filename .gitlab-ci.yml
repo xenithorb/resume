@@ -85,6 +85,14 @@ build_png:
 ####################################
 deploy:
   stage: deploy
+  variables:
+    DEPENDENCIES: >-
+      ssh-agent
+      ssh-keyscan
+      git
+      curl
+      file
+      jq
   before_script:
     - RELEASE_TAG=$(date +'%F-%H-%M')
     - |-
@@ -92,12 +100,7 @@ deploy:
         printf '{ "tag_name": "%s", "body": "%s", "draft": false, "prerelease": false }' \
         "${RELEASE_TAG}" "Latest Release of my Resume as of: ${RELEASE_TAG}"
       )
-    - command -v ssh-agent || INSTALL_PKGS+=" /usr/bin/ssh-agent"
-    - command -v ssh-keyscan || INSTALL_PKGS+=" /usr/bin/ssh-keyscan"
-    - command -v git || INSTALL_PKGS+=" /usr/bin/git"
-    - command -v curl || INSTALL_PKGS+=" /usr/bin/curl"
-    - command -v file || INSTALL_PKGS+=" /usr/bin/file"
-    - command -v jq || INSTALL_PKGS+=" /usr/bin/jq"
+    - for i in "${DEPENDENCIES}"; do command -v "${i}" || INSTALL_PKGS+=" /usr/bin/${i}"; done
     - rm -f /etc/*.repos.d/*-modular.repo
     - dnf install -y ${INSTALL_PKGS}
     - eval $(ssh-agent -s)
@@ -118,7 +121,7 @@ deploy:
     - git tag ${RELEASE_TAG}
     - git push --tags
     - API_RESPONSE=$(curl -S --data "${API_JSON}" "https://api.github.com/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}")
-    - API_ASSET_URL=$( echo "$API_RESPONSE" | jq '.upload_url|split("{")[0]' )
+    - API_ASSET_URL=$( echo "$API_RESPONSE" | jq -r '.upload_url|split("{")[0]' )
     - |-
       for i in resume.pdf resume*.png; do
         curl -S \
