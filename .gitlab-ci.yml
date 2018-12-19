@@ -1,0 +1,151 @@
+---
+image: fedora:latest
+stages:
+  - build_docker
+  - build_pdf
+  - build_png
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+  GIT_HOST: github.com
+  #GIT_HOST: gitlab.com
+
+#####################################
+#   Build Fedora texlive image
+####################################
+build_docker: &build_docker
+  image: docker:stable
+  stage: build_docker
+  services:
+    - docker:stable-dind
+  before_script:
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - apk --no-cache add make
+
+  script:
+    - docker build -t "${CI_REGISTRY_NAME}:fedora-texlive" .
+    - docker push "${CI_REGISTRY_NAME}:fedora-texlive"
+
+  after_script:
+    - cat build.log
+
+  when: manual
+
+####################################
+#   Build template
+####################################
+.build_artifacts: &build_artifacts
+  image:
+    name: $IMAGE_TAG
+    entrypoint: []
+  services: []
+
+  variables:
+    GIT_STRAGEGY: fetch
+    GIT_CHECKOUT: "true"
+
+  after_script:
+    - cat build.log
+
+####################################
+#   Build PDF
+####################################
+build_pdf:
+  <<: *build_artifacts
+  stage: build_pdf
+  script:
+    - rm -f *.pdf
+    - make resume.pdf
+  artifacts:
+    expire_in: '300'
+    paths:
+      - '*.pdf'
+
+####################################
+#   Build PNG
+####################################
+build_png:
+  <<: *build_artifacts
+  stage: build_png
+  script:
+    - rm *.png
+    - make resume.png
+  dependencies:
+    - build_pdf
+  artifacts:
+    expire_in: '300'
+    paths:
+      - '*.png'
+
+####################################
+#   Deploy
+####################################
+deploy:
+  stage: deploy
+  variables:
+    DEPENDENCIES: >-
+      ssh-agent
+      ssh-keyscan
+      git
+      curl
+      file
+      jq
+  before_script:
+    - RELEASE_TAG=$(date +'%F-%H-%M')
+    # Compose a JSON string to be used with the release creation cURL later
+    - |-
+      API_JSON=$(
+        printf '{ "tag_name": "%s", "body": "%s", "draft": false, "prerelease": false }' \
+        "${RELEASE_TAG}" "Latest Release of my Resume as of: ${RELEASE_TAG}"
+      )
+    # Build a list of dependencies to pass to DNF
+    - |-
+      for i in ${DEPENDENCIES};
+        do command -v "${i}" || INSTALL_PKGS+=" /usr/bin/${i}"
+      done
+    # Speed things up by removing the modular repos (so they don't download metadata)
+    - rm -f /etc/*.repos.d/*-modular.repo
+    - dnf install -q -y ${INSTALL_PKGS}
+    - eval $(ssh-agent -s)
+    - set +x; echo "$GIT_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan ${GIT_HOST} >> ~/.ssh/known_hosts
+  script:
+    - git remote set-url origin "git@${GIT_HOST}:${CI_PROJECT_PATH}"
+    - git config user.name "Gitlab-CI"
+    - git config user.email "git@gitlab.com"
+    - git checkout ${CI_COMMIT_REF_NAME}
+    - git add resume.pdf resume-*.png
+    - git commit -m "[skip ci] Auto Update PNG/PDF files in repository"
+    - git push -u origin ${CI_COMMIT_REF_NAME}
+    - git tag ${RELEASE_TAG}
+    - git push --tags
+    # Create the release
+    - |-
+      API_RESPONSE=$(
+        curl -sS --data "${API_JSON}" \
+        "https://api.${GIT_HOST}/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}" \
+      )
+      echo "$API_RESPONSE" | jq -CS .
+    - API_ASSET_URL=$( echo "$API_RESPONSE" | jq -r '.upload_url|split("{")[0]' )
+    - |-
+      for i in resume.pdf resume*.png; do
+        curl -sS \
+          --user "${CI_PROJECT_NAMESPACE}:${GITHUB_TOKEN}" \
+          --header "Content-Type: $( file -b --mime-type ${i} )" \
+          --upload-file "${i}" \
+          -X POST "${API_ASSET_URL}?name=${i}" \
+          | jq -CS .
+      done
+  dependencies:
+    - build_pdf
+    - build_png
+  artifacts:
+    paths:
+      - '*.png'
+      - '*.pdf'
+  only:
+    - master
