@@ -118,15 +118,15 @@ deploy:
     - "\
       for i in resume*.png; do \
       curl --user \"xenithorb:${GITHUB_TOKEN}\"\ --header 'Content-Type: image/png' \
-      --upload-file \"${i}\"; \
+      --upload-file \"${i}\" \
       -X POST \"https://uploads.github.com/repos/${CI_PROJECT_PATH}/releases/${RELEASE_TAG}/assets?name=${i}\" \
-      done"
+      ; done"
     - "\
       for i in resume.pdf; do \
       curl --user \"xenithorb:${GITHUB_TOKEN}\"\ --header 'Content-Type: application/pdf' \
-      --upload-file \"${i}\"; \
+      --upload-file \"${i}\" \
       -X POST \"https://uploads.github.com/repos/${CI_PROJECT_PATH}/releases/${RELEASE_TAG}/assets?name=${i}\" \
-      done"
+      ; done"
   dependencies:
     - build_pdf
     - build_png
