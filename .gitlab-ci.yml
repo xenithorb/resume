@@ -12,8 +12,8 @@ variables:
   GIT_HOST: github.com
   #GIT_HOST: gitlab.com
 
-# YAML anchor for all jobs build exceptions. This keeps the CI 
-# from looping on itself, since we have it commit back to the repo 
+# YAML anchor for all jobs build exceptions. This keeps the CI
+# from looping on itself, since we have it commit back to the repo
 # to update the PNG/PDF files
 .build_exceptions: &build_exceptions
   except:
@@ -163,3 +163,20 @@ deploy:
   only:
     - master
     - tags
+
+####################################
+#   Restore pipeline status
+####################################
+mock_build_status:
+  stage: deploy
+  image: alpine:latest
+  variables:
+    GIT_STRATEGY: none
+  script:
+      # Since this CI pipeline commits back into the repo, but doesn't run a futher pipeline, the status remains "Unknown"
+      # This restores the correct status of the pipeline badge, as in order to run this job, everything prior must have
+      # already been successful anyway, so the status isn't meaningless just because we're mocking it
+    - /usr/bin/true
+  only:
+   variables:
+    - $CI_COMMIT_MESSAGE =~ /\[CI\]/
