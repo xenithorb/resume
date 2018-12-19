@@ -8,7 +8,7 @@ stages:
 
 variables:
   DOCKER_DRIVER: overlay2
-  IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:fedora-texlive
   GIT_HOST: github.com
   #GIT_HOST: gitlab.com
 
@@ -22,14 +22,14 @@ build_docker: &build_docker
     - docker:stable-dind
   before_script:
     - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - apk --no-cache add make
+    # - apk --no-cache add make
 
   script:
-    - docker build -t "${CI_REGISTRY_NAME}:fedora-texlive" .
-    - docker push "${CI_REGISTRY_NAME}:fedora-texlive"
+    - docker build -t "${IMAGE_TAG}" .
+    - docker push "${IMAGE_TAG}"
 
-  after_script:
-    - cat build.log
+  # after_script:
+  #   - cat build.log
 
   when: manual
 
