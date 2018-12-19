@@ -130,10 +130,7 @@ deploy:
         "https://api.${GIT_HOST}/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}" \
         | tee >(jq -CS .)
       )
-    - |-
-      API_ASSET_URL=$(
-        echo "$API_RESPONSE" | jq -r '.upload_url|split("{")[0]'
-      )
+    - API_ASSET_URL=$( echo "$API_RESPONSE" | jq -r '.upload_url|split("{")[0]' )
     - |-
       for i in resume.pdf resume*.png; do
         curl -sS \
@@ -141,7 +138,7 @@ deploy:
           --header "Content-Type: $( file -b --mime-type ${i} )" \
           --upload-file "${i}" \
           -X POST "${API_ASSET_URL}?name=${i}" \
-          | jq -CS .
+          | tee >(jq -CS .)
       done
   dependencies:
     - build_pdf
