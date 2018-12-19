@@ -25,8 +25,7 @@ build_docker: &build_docker
     - apk --no-cache add make
 
   script:
-    - make docker_build
-    - docker tag resume "${CI_REGISTRY_NAME}:fedora-texlive"
+    - docker build -t "${CI_REGISTRY_NAME}:fedora-texlive" .
     - docker push "${CI_REGISTRY_NAME}:fedora-texlive"
 
   after_script:
@@ -94,43 +93,55 @@ deploy:
       file
       jq
   before_script:
-    - set -x
-    - echo "${DEPENDENCIES}"
     - RELEASE_TAG=$(date +'%F-%H-%M')
+    # Compose a JSON string to be used with the release creation cURL later
     - |-
       API_JSON=$(
         printf '{ "tag_name": "%s", "body": "%s", "draft": false, "prerelease": false }' \
         "${RELEASE_TAG}" "Latest Release of my Resume as of: ${RELEASE_TAG}"
       )
-    - for i in ${DEPENDENCIES}; do command -v "${i}" || INSTALL_PKGS+=" /usr/bin/${i}"; done
+    # Build a list of dependencies to pass to DNF
+    - |-
+      for i in ${DEPENDENCIES};
+        do command -v "${i}" || INSTALL_PKGS+=" /usr/bin/${i}"
+      done
+    # Speed things up by removing the modular repos (so they don't download metadata)
     - rm -f /etc/*.repos.d/*-modular.repo
     - dnf install -y ${INSTALL_PKGS}
     - eval $(ssh-agent -s)
-    - echo "$GIT_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - set +x; echo "$GIT_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null; set -x
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - ssh-keyscan ${GIT_HOST} >> ~/.ssh/known_hosts
   script:
     - git remote set-url origin "git@${GIT_HOST}:${CI_PROJECT_PATH}"
-    - git remote -v
-    - ssh-add -l
     - git config user.name "Gitlab-CI"
     - git config user.email "git@gitlab.com"
-    - git checkout $CI_COMMIT_REF_NAME
+    - git checkout ${CI_COMMIT_REF_NAME}
     - git add resume.pdf resume-*.png
     - git commit -m "[skip ci] Auto Update PNG/PDF files in repository"
-    - git push -u origin $CI_COMMIT_REF_NAME
+    - git push -u origin ${CI_COMMIT_REF_NAME}
     - git tag ${RELEASE_TAG}
     - git push --tags
-    - API_RESPONSE=$(curl -S --data "${API_JSON}" "https://api.github.com/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}")
-    - API_ASSET_URL=$( echo "$API_RESPONSE" | jq -r '.upload_url|split("{")[0]' )
+    # Create the release
+    - |-
+      API_RESPONSE=$(
+        curl -sS --data "${API_JSON}" \
+        "https://api.${GIT_HOST}/repos/${CI_PROJECT_PATH}/releases?access_token=${GITHUB_TOKEN}" \
+        | tee >(jq -CS .)
+      )
+    - |-
+      API_ASSET_URL=$(
+        echo "$API_RESPONSE" | jq -r '.upload_url|split("{")[0]'
+      )
     - |-
       for i in resume.pdf resume*.png; do
-        curl -S \
+        curl -sS \
           --user "${CI_PROJECT_NAMESPACE}:${GITHUB_TOKEN}" \
           --header "Content-Type: $( file -b --mime-type ${i} )" \
           --upload-file "${i}" \
-          -X POST "${API_ASSET_URL}?name=${i}"
+          -X POST "${API_ASSET_URL}?name=${i}" \
+          | jq -CS .
       done
   dependencies:
     - build_pdf
