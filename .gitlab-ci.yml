@@ -49,6 +49,10 @@ build_docker: &build_docker
   after_script:
     - cat build.log
 
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /\[CI\]/
+
 ####################################
 #   Build PDF
 ####################################
@@ -119,7 +123,7 @@ deploy:
     - git config user.email "git@gitlab.com"
     - git checkout ${CI_COMMIT_REF_NAME}
     - git add resume.pdf resume-*.png
-    - git commit -m "[skip ci] Auto Update PNG/PDF files in repository"
+    - "git commit -m \"[CI]: Update PNG/PDF files in repository\""
     - git push -u origin ${CI_COMMIT_REF_NAME}
     - git tag ${RELEASE_TAG}
     - git push --tags
